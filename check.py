@@ -1,12 +1,10 @@
 import os
 import json
 import requests
-import psycopg2 # A simple, lightweight library for Postgres
+import psycopg2 
 
 # --- 1. CONFIGURATION ---
 PINCODES_TO_CHECK = ['132001', '110016']
-
-# Get secrets from GitHub
 DATABASE_URL = os.environ.get('DATABASE_URL')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
@@ -16,12 +14,10 @@ def get_products_from_db():
     print("Connecting to database...")
     conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
-    # Fetch all columns for all products
     cursor.execute("SELECT name, url, product_id, store_type FROM products")
     products = cursor.fetchall()
     conn.close()
     
-    # Convert list of tuples to list of dicts
     products_list = [
         {"name": row[0], "url": row[1], "productId": row[2], "storeType": row[3]}
         for row in products
@@ -34,7 +30,6 @@ def send_telegram_message(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("Telegram secrets not set. Skipping message.")
         return
-
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         'chat_id': TELEGRAM_CHAT_ID,
@@ -42,7 +37,7 @@ def send_telegram_message(message):
         'parse_mode': 'Markdown',
         'disable_web_page_preview': True
     }
-    requests.post(url, json=payload)
+    requests.post(url, json=payload, timeout=10) # 10s is fine for Telegram
 
 # --- 4. CROMA CHECKER ---
 def check_croma(product, pincode):
@@ -51,8 +46,9 @@ def check_croma(product, pincode):
     headers = {'accept': 'application/json', 'content-type': 'application/json', 'oms-apim-subscription-key': '1131858141634e2abe2efb2b3a2a2a5d', 'origin': 'https://www.croma.com', 'referer': 'https://www.croma.com/'}
     
     try:
+        # --- Croma is fast, 10s is fine ---
         res = requests.post(url, headers=headers, json=payload, timeout=10)
-        res.raise_for_status() # Raise error if status is not 200
+        res.raise_for_status() 
         data = res.json()
         if data.get("promise", {}).get("suggestedOption", {}).get("option", {}).get("promiseLines", {}).get("promiseLine"):
             return f'✅ *In Stock at Croma ({pincode})*\n[{product["name"]}]({product["url"]})'
@@ -60,14 +56,13 @@ def check_croma(product, pincode):
         print(f'Error checking Croma ({product["name"]}): {e}')
     return None
 
-# --- 5. FLIPKART CHECKER (Your exact working code) ---
+# --- 5. FLIPKART CHECKER ---
 def check_flipkart(product, pincode):
     url = "https://2.rome.api.flipkart.com/api/3/product/serviceability"
     payload = {
         "requestContext": {"products": [{"productId": product["productId"]}]},
         "locationContext": {"pincode": pincode}
     }
-    # Your exact headers
     headers = {
         "Accept": "application/json",
         "Accept-Language": "en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -88,8 +83,9 @@ def check_flipkart(product, pincode):
     }
     
     try:
-        res = requests.post(url, headers=headers, json=payload, timeout=10)
-        res.raise_for_status() # Raise error if status is not 200
+        # --- ONLY Flipkart needs the longer 30s timeout ---
+        res = requests.post(url, headers=headers, json=payload, timeout=30)
+        res.raise_for_status() 
         data = res.json()
         listing = data.get("RESPONSE", {}).get(product["productId"], {}).get("listingSummary", {})
         
@@ -111,7 +107,6 @@ def main():
 
     in_stock_messages = []
     
-    # We don't need ThreadPoolExecutor for 4 products, this is simpler
     for product in products_to_track:
         for pincode in PINCODES_TO_CHECK:
             result = None
