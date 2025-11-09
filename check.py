@@ -4,7 +4,7 @@ import requests
 import psycopg2 
 
 # --- 1. CONFIGURATION ---
-PINCODES_TO_CHECK = ['132001', '110016']
+PINCODES_TO_CHECK = ['132001']
 DATABASE_URL = os.environ.get('DATABASE_URL')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
