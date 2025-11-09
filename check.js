@@ -25,15 +25,16 @@ async function sendTelegramMessage(message) {
 
 // --- CROMA CHECKER ---
 async function checkCroma(product, pincode) {
-  const url = 'https.api.croma.com/inventory/oms/v2/tms/details-pwa/';
+  const url = 'https://api.croma.com/inventory/oms/v2/tms/details-pwa/';
   const payload = { promise: { allocationRuleID: 'SYSTEM', checkInventory: 'Y', organizationCode: 'CROMA', sourcingClassification: 'EC', promiseLines: { promiseLine: [{ fulfillmentType: 'HDEL', itemID: product.productId, lineId: '1', requiredQty: '1', shipToAddress: { zipCode: pincode, extn: {} }, extn: { widerStoreFlag: 'N' } }] } } };
-  const headers = { 'accept': 'application/json', 'content-type': 'application/json', 'oms-apim-subscription-key': '1131858141634e2abe2efb2b3a2a2a5d', 'origin': 'https.www.croma.com', 'referer': 'https.www.croma.com/' };
+  const headers = { 'accept': 'application/json', 'content-type': 'application/json', 'oms-apim-subscription-key': '1131858141634e2abe2efb2b3a2a2a5d', 'origin': 'https://www.croma.com', 'referer': 'https://www.croma.com/' };
   try {
     const res = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(payload) });
     if (!res.ok) throw new Error(`Croma API error: ${res.status}`);
     const data = await res.json();
 
     // --- DEBUGGING LINE ---
+    // I still need this to fix the false "in stock" message!
     console.log(`CROMA_DEBUG (${product.name}): ${JSON.stringify(data)}`);
     // ------------------------
 
@@ -46,20 +47,29 @@ async function checkCroma(product, pincode) {
 
 // --- FLIPKART CHECKER ---
 async function checkFlipkart(product, pincode) {
-  const url = 'https.2.rome.api.flipkart.com/api/3/product/serviceability';
+  const url = 'https://2.rome.api.flipkart.com/api/3/product/serviceability';
   const payload = { requestContext: { products: [{ productId: product.productId }] }, locationContext: { pincode: pincode } };
   
-  // These headers now include the MRA58N User-Agent fix
+  // --- THESE ARE THE FULL, CORRECT HEADERS FROM YOUR PYTHON SCRIPT ---
   const headers = { 
-    "Accept": "application/json", 
-    "Content-Type": "application/json", 
-    "Origin": "https.www.flipkart.com", 
-    "Referer": "https.www.flipkart.com/", 
-    // --- THIS LINE IS NOW FIXED ---
+    "Accept": "application/json",
+    "Accept-Language": "en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Connection": "keep-alive",
+    "Content-Type": "application/json",
+    "Origin": "https://www.flipkart.com",
+    "Referer": "https://www.flipkart.com/",
     "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
-    // ----------------------------
-    "X-User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36 FKUA/msite/0.0.3/msite/Mobile" 
+    "X-User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36 FKUA/msite/0.0.3/msite/Mobile",
+    "flipkart_secure": "true",
+    "DNT": "1",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-site",
+    "sec-ch-ua": '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+    "sec-ch-ua-mobile": "?1",
+    "sec-ch-ua-platform": '"Android"',
   };
+  // -----------------------------------------------------------------
   
   try {
     const res = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(payload) });
