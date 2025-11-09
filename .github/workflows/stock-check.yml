@@ -3,7 +3,7 @@ name: Check Stock Availability
 on:
   schedule:
     # Runs every 10 minutes
-    - cron: '*/10 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch: # Allows you to run it manually
 
 jobs:
