@@ -30,14 +30,29 @@ def send_telegram_message(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("Telegram secrets not set. Skipping message.")
         return
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        'chat_id': TELEGRAM_CHAT_ID,
-        'text': message,
-        'parse_mode': 'Markdown',
-        'disable_web_page_preview': True
-    }
-    requests.post(url, json=payload, timeout=10) # 10s is fine for Telegram
+
+    # Split the comma-separated string into a list of IDs
+    chat_ids = TELEGRAM_CHAT_ID.split(',')
+    
+    print(f"Sending message to {len(chat_ids)} users...")
+
+    for chat_id in chat_ids:
+        if not chat_id.strip(): # Skip if there's an empty string
+            continue
+            
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        payload = {
+            'chat_id': chat_id.strip(), # .strip() removes any accidental spaces
+            'text': message,
+            'parse_mode': 'Markdown',
+            'disable_web_page_preview': True
+        }
+        
+        try:
+            # We add a small timeout for each request
+            requests.post(url, json=payload, timeout=5)
+        except Exception as e:
+            print(f"Failed to send message to {chat_id}: {e}")
 
 # --- 4. CROMA CHECKER ---
 def check_croma(product, pincode):
