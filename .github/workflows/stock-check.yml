@@ -4,7 +4,7 @@ on:
   schedule:
     # You still need to slow this down.
     # 529 errors will happen even with Python if you run it too often from a server.
-    - cron: '*/15 * * * *' # Set to 15 minutes
+    - cron: '*/5 * * * *' # Set to 15 minutes
   workflow_dispatch: 
 
 jobs:
